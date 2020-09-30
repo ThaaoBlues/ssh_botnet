@@ -10,7 +10,7 @@ server_address = '127.0.0.1'
 server_port = int(7688)
 server_username = "username"
 server_password = "password"
-server_host_key = paramiko.RSAKey(filename="/media/th3x0/101E13E1101E13E1/ssh_botnet/id_rsa")
+server_host_key = paramiko.RSAKey(filename="id_rsa")
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
